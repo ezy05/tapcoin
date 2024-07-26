@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coin Tap Game</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-image: url('poza.png');  /* Imaginea de fundal */
+            background-size: cover;
+            background-position: center;
+        }
+        #container {
+            text-align: center;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            padding: 50px;
+            box-shadow: 0px 0px 25px rgba(0, 0, 0, 0.5);
+            width: 600px;  /* Lățime mai mare pentru a acomoda imaginea mare */
+            max-width: 90vw; /* Asigură că containerul se adaptează la dimensiunea ecranului */
+        }
+        #coin {
+            width: 300px;  /* Dimensiune mare pentru imaginea monedei */
+            height: 300px;
+            cursor: pointer;
+            margin-top: 20px;  /* Spațiu deasupra imaginii */
+        }
+        #balance {
+            font-size: 60px;  /* Dimensiune mare pentru textul balanței */
+            font-weight: bold;
+            margin-bottom: 20px;  /* Spațiu sub balanță pentru a crea separare de textul mic */
+        }
+        #tap-instruction {
+            font-size: 20px;  /* Dimensiune mai mică pentru textul de instrucțiuni */
+            color: #333;  /* Culoare textului */
+            margin-bottom: 40px;  /* Spațiu sub textul mic pentru a crea separare de imaginea monedei */
+        }
+        #start-button, #withdraw-button, #earn-more-button {
+            display: block;
+            margin: 10px auto;  /* Spațiu între butoane */
+            padding: 15px 30px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        #start-button:hover, #withdraw-button:hover, #earn-more-button:hover {
+            background-color: #0056b3;
+        }
+        #game-screen {
+            display: none;
+        }
+        #modal {
+            display: none;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        #modal-content {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            width: 300px;
+            text-align: center;
+        }
+        #modal-content input {
+            margin: 10px 0;
+            padding: 10px;
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        #modal-content button {
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        #modal-content button:hover {
+            background-color: #0056b3;
+        }
+        #error-message, #success-message {
+            margin-top: 10px;
+            display: none;
+        }
+        #error-message {
+            color: red;
+        }
+        #success-message {
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="welcome-screen">
+            <h1>Welcome to Coin Tap Game!</h1>
+            <button id="start-button">Start Now</button>
+        </div>
+        <div id="game-screen">
+            <div id="balance">Balance: 100</div>
+            <div id="tap-instruction">TAP TAP THE COIN</div>
+            <img id="coin" src="coin.png" alt="Coin Image">
+            <button id="withdraw-button">Withdraw</button>
+            <button id="earn-more-button">Earn More</button>
+        </div>
+    </div>
+
+    <!-- Modal pentru retragere -->
+    <div id="modal">
+        <div id="modal-content">
+            <h2>Withdraw Funds</h2>
+            <input type="text" id="paypal-email" placeholder="Enter PayPal Email" required>
+            <input type="number" id="withdraw-amount" placeholder="Enter Amount" min="1" required>
+            <button id="confirm-withdraw">Confirm</button>
+            <button id="close-modal">Close</button>
+            <div id="info" style="margin-top: 10px; color: #333;">10,000 = $1</div>
+            <div id="error-message">Error message here</div> <!-- Mesaj de eroare -->
+            <div id="success-message">Withdrawal successful!</div> <!-- Mesaj de succes -->
+        </div>
+    </div>
+
+    <script>
+        // Setează balanța inițială la 100 dacă nu există o valoare salvată în localStorage
+        let userBalance = parseInt(localStorage.getItem('userBalance'), 10);
+        if (isNaN(userBalance)) {
+            userBalance = 100; // Balanță inițială
+            localStorage.setItem('userBalance', userBalance);
+        }
+
+        const balanceElement = document.getElementById('balance');
+        const welcomeScreen = document.getElementById('welcome-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const startButton = document.getElementById('start-button');
+        const coinImage = document.getElementById('coin');
+        const withdrawButton = document.getElementById('withdraw-button');
+        const earnMoreButton = document.getElementById('earn-more-button');
+        const modal = document.getElementById('modal');
+        const closeModalButton = document.getElementById('close-modal');
+        const confirmWithdrawButton = document.getElementById('confirm-withdraw');
+        const paypalEmailInput = document.getElementById('paypal-email');
+        const withdrawAmountInput = document.getElementById('withdraw-amount');
+        const infoElement = document.getElementById('info');
+        const errorMessage = document.getElementById('error-message');
+        const successMessage = document.getElementById('success-message');
+
+        // Actualizează balanța pe ecran
+        balanceElement.textContent = `Balance: ${userBalance}`;
+
+        startButton.addEventListener('click', () => {
+            welcomeScreen.style.display = 'none';
+            gameScreen.style.display = 'block';
+        });
+
+        coinImage.addEventListener('click', () => {
+            userBalance += 1;
+            localStorage.setItem('userBalance', userBalance);
+            balanceElement.textContent = `Balance: ${userBalance}`;
+        });
+
+        withdrawButton.addEventListener('click', () => {
+            if (userBalance < 100) {
+                alert("Your balance is too low to withdraw. You need at least 100 to withdraw.");
+                return;
+            }
+            modal.style.display = 'flex';
+            errorMessage.style.display = 'none'; // Ascunde mesajul de eroare atunci când modalul se deschide
+            successMessage.style.display = 'none'; // Ascunde mesajul de succes atunci când modalul se deschide
+        });
+
+        closeModalButton.addEventListener('click', () => {
+            modal.style.display = 'none';
+            errorMessage.style.display = 'none'; // Ascunde mesajul de eroare când se închide modalul
+            successMessage.style.display = 'none'; // Ascunde mesajul de succes când se închide modalul
+        });
+
+        confirmWithdrawButton.addEventListener('click', () => {
+            const email = paypalEmailInput.value.trim();
+            const amount = parseInt(withdrawAmountInput.value, 10);
+
+            if (!email || isNaN(amount) || amount <= 0) {
+                errorMessage.textContent = "Please enter a valid email and amount.";
+                errorMessage.style.display = 'block';
+                successMessage.style.display = 'none'; // Ascunde mesajul de succes dacă este afișat
+                return;
+            }
+
+            if (amount > userBalance) {
+                errorMessage.textContent = "Insufficient balance.";
+                errorMessage.style.display = 'block';
+                successMessage.style.display = 'none'; // Ascunde mesajul de succes dacă este afișat
+                return;
+            }
+
+            userBalance -= amount;
+            localStorage.setItem('userBalance', userBalance);
+            balanceElement.textContent = `Balance: ${userBalance}`;
+            successMessage.textContent = `Withdrawal successful! Sent $${amount / 10000} to ${email}`;
+            successMessage.style.display = 'block';
+            errorMessage.style.display = 'none'; // Ascunde mesajul de eroare dacă este afișat
+            setTimeout(() => {
+                modal.style.display = 'none';
+                successMessage.style.display = 'none'; // Ascunde mesajul de succes după închiderea modalului
+            }, 3000); // Ascunde mesajul după 3 secunde
+        });
+
+        earnMoreButton.addEventListener('click', () => {
+            alert("Earn More feature not implemented yet.");
+        });
+    </script>
+</body>
+</html>
